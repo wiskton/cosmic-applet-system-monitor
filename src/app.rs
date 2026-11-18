@@ -9,7 +9,7 @@ use cosmic::Element;
 
 use crate::config::{AppConfig, DisplayFormat, RamFormat};
 use crate::disk::{format_bytes, get_disks, DiskInfo};
-use crate::system::{format_net_speed, read_memory, CpuMonitor, MemInfo, NetMonitor};
+use crate::system::{format_net_speed, read_memory, CpuMonitor, GpuMonitor, MemInfo, NetMonitor};
 
 fn horizontal_space() -> cosmic::iced::widget::Space {
     cosmic::iced::widget::Space::new().width(Length::Fill)
@@ -20,6 +20,7 @@ pub struct SystemMonitorApplet {
     popup: Option<Id>,
     cpu: CpuMonitor,
     mem: MemInfo,
+    gpu: GpuMonitor,
     net: NetMonitor,
     disks: Vec<DiskInfo>,
     config: AppConfig,
@@ -34,6 +35,8 @@ pub enum Message {
     Refresh,
     ToggleCpu,
     ToggleRam,
+    ToggleGpu,
+    ToggleGpuTemp,
     ToggleDisk,
     ToggleNet,
     SetDisplayFormat(DisplayFormat),
@@ -58,7 +61,7 @@ impl SystemMonitorApplet {
 
     fn render_popup(&self) -> Element<'_, Message> {
         let header = row![
-            text("💻 Monitor do Sistema")
+            text("💻 Monitor do Sistema & Recursos")
                 .size(17)
                 .font(cosmic::font::bold()),
             horizontal_space(),
@@ -69,7 +72,7 @@ impl SystemMonitorApplet {
         .spacing(8)
         .align_y(Alignment::Center);
 
-        // --- CPU Card ---
+        // --- 1. CPU Card ---
         let cpu_color = if self.cpu.usage_percent >= self.config.crit_percent {
             cosmic::iced::Color::from_rgb(0.95, 0.3, 0.3)
         } else if self.cpu.usage_percent >= self.config.warn_percent {
@@ -80,7 +83,7 @@ impl SystemMonitorApplet {
 
         let cpu_pct_val = (self.cpu.usage_percent as f32 / 100.0).clamp(0.0, 1.0);
         let cpu_row = row![
-            text("CPU").size(13).font(cosmic::font::bold()),
+            text("Processador (CPU)").size(13).font(cosmic::font::bold()),
             horizontal_space(),
             text(format!("{:.1}%", self.cpu.usage_percent))
                 .size(14)
@@ -91,7 +94,7 @@ impl SystemMonitorApplet {
         let cpu_bar = progress_bar::determinate_linear(cpu_pct_val);
         let cpu_section = column![cpu_row, cpu_bar].spacing(4);
 
-        // --- RAM Card ---
+        // --- 2. RAM Card ---
         let ram_color = if self.mem.usage_percent >= self.config.crit_percent {
             cosmic::iced::Color::from_rgb(0.95, 0.3, 0.3)
         } else if self.mem.usage_percent >= self.config.warn_percent {
@@ -105,7 +108,7 @@ impl SystemMonitorApplet {
         let ram_avail = format_bytes(self.mem.avail_bytes, 1);
 
         let ram_row = row![
-            text("RAM").size(13).font(cosmic::font::bold()),
+            text("Memória RAM").size(13).font(cosmic::font::bold()),
             text(format!("({} usado / {} total, {} livre)", ram_used, ram_total, ram_avail))
                 .size(11)
                 .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6))),
@@ -119,7 +122,56 @@ impl SystemMonitorApplet {
         let ram_bar = progress_bar::determinate_linear(ram_pct_val);
         let ram_section = column![ram_row, ram_bar].spacing(4);
 
-        // --- DISCO Card ---
+        // --- 3. GPU Card ---
+        let gpu_info = self.gpu.get();
+        let gpu_section = if let Some(gpu) = gpu_info {
+            let gpu_color = if gpu.usage_percent >= self.config.crit_percent {
+                cosmic::iced::Color::from_rgb(0.95, 0.3, 0.3)
+            } else if gpu.usage_percent >= self.config.warn_percent {
+                cosmic::iced::Color::from_rgb(0.96, 0.62, 0.45)
+            } else {
+                cosmic::iced::Color::from_rgb(0.3, 0.8, 0.5)
+            };
+            let gpu_pct_val = (gpu.usage_percent as f32 / 100.0).clamp(0.0, 1.0);
+
+            let vram_text = if gpu.vram_total_mb > 0 {
+                let vram_pct = (gpu.vram_used_mb as f64 / gpu.vram_total_mb as f64) * 100.0;
+                format!("VRAM: {} MiB / {} MiB ({:.0}%)  |  ", gpu.vram_used_mb, gpu.vram_total_mb, vram_pct)
+            } else {
+                String::new()
+            };
+
+            let temp_text = if gpu.temperature_c > 0 {
+                format!("Temp: {}°C", gpu.temperature_c)
+            } else {
+                String::new()
+            };
+
+            let gpu_row = row![
+                text(format!("Placa de Vídeo ({})", gpu.name))
+                    .size(13)
+                    .font(cosmic::font::bold()),
+                text(format!("{}{}", vram_text, temp_text))
+                    .size(11)
+                    .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6))),
+                horizontal_space(),
+                text(format!("{:.1}%", gpu.usage_percent))
+                    .size(14)
+                    .font(cosmic::font::bold())
+                    .class(cosmic::theme::Text::Color(gpu_color)),
+            ]
+            .align_y(Alignment::Center);
+
+            let gpu_bar = progress_bar::determinate_linear(gpu_pct_val);
+            column![gpu_row, gpu_bar].spacing(4)
+        } else {
+            column![
+                text("GPU").size(13).font(cosmic::font::bold()),
+                text("Nenhuma GPU dedicada com suporte detectada").size(11).class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.5, 0.5, 0.5)))
+            ].spacing(2)
+        };
+
+        // --- 4. DISCO Card ---
         let current = self.current_disk();
         let disk_section = if let Some(d) = current {
             let decimals = if self.config.show_decimals { 1 } else { 0 };
@@ -153,6 +205,7 @@ impl SystemMonitorApplet {
 
             let d_bar = progress_bar::determinate_linear(pct_val);
             let mut col = column![disk_header, d_bar].spacing(4);
+
             if self.disks.len() > 1 {
                 let mut part_buttons = row![
                     text("Partição:")
@@ -176,12 +229,13 @@ impl SystemMonitorApplet {
                 }
                 col = col.push(part_buttons);
             }
+
             col
         } else {
             column![text("Nenhum disco detectado").size(12)]
         };
 
-        // --- INTERNET / REDE Card ---
+        // --- 5. INTERNET / REDE Card ---
         let net_rx_str = format_net_speed(self.net.rx_speed);
         let net_tx_str = format_net_speed(self.net.tx_speed);
         let total_rx_str = format_bytes(self.net.total_rx, 1);
@@ -209,7 +263,7 @@ impl SystemMonitorApplet {
         ];
         let net_section = column![net_row, net_totals].spacing(4);
 
-        // --- Configuração dos Itens na Barra ---
+        // --- 6. Configuração dos Itens na Barra ---
         let toggles_row = row![
             text("Mostrar na barra:")
                 .size(12)
@@ -220,12 +274,27 @@ impl SystemMonitorApplet {
             button::standard(if self.config.show_ram { "✓ RAM" } else { "RAM" })
                 .padding([2, 8])
                 .on_press(Message::ToggleRam),
+            button::standard(if self.config.show_gpu { "✓ GPU" } else { "GPU" })
+                .padding([2, 8])
+                .on_press(Message::ToggleGpu),
             button::standard(if self.config.show_disk { "✓ Disco" } else { "Disco" })
                 .padding([2, 8])
                 .on_press(Message::ToggleDisk),
             button::standard(if self.config.show_net { "✓ Internet" } else { "Internet" })
                 .padding([2, 8])
                 .on_press(Message::ToggleNet),
+        ]
+        .spacing(6)
+        .align_y(Alignment::Center);
+
+        // Opções da GPU
+        let gpu_options_row = row![
+            text("Opções GPU:")
+                .size(12)
+                .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.65, 0.65, 0.65))),
+            button::standard(if self.config.show_gpu_temp { "Exibir Temp: Ligado (ex: 55% 61°C)" } else { "Exibir Temp: Desligado (ex: 55%)" })
+                .padding([2, 8])
+                .on_press(Message::ToggleGpuTemp),
         ]
         .spacing(6)
         .align_y(Alignment::Center);
@@ -332,11 +401,14 @@ impl SystemMonitorApplet {
             divider::horizontal::default(),
             ram_section,
             divider::horizontal::default(),
+            gpu_section,
+            divider::horizontal::default(),
             disk_section,
             divider::horizontal::default(),
             net_section,
             divider::horizontal::default(),
             toggles_row,
+            gpu_options_row,
             disk_format_row,
             label_row,
             ram_format_row,
@@ -367,11 +439,12 @@ impl cosmic::Application for SystemMonitorApplet {
     }
 
     fn init(mut core: Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
-        core.applet.window_size(320, 36);
+        core.applet.window_size(360, 36);
 
         let config = AppConfig::load();
         let cpu = CpuMonitor::new();
         let mem = read_memory();
+        let gpu = GpuMonitor::new();
         let net = NetMonitor::new();
         let disks = get_disks();
 
@@ -380,6 +453,7 @@ impl cosmic::Application for SystemMonitorApplet {
             popup: None,
             cpu,
             mem,
+            gpu,
             net,
             disks,
             config,
@@ -426,6 +500,14 @@ impl cosmic::Application for SystemMonitorApplet {
             }
             Message::ToggleRam => {
                 self.config.show_ram = !self.config.show_ram;
+                self.save_config();
+            }
+            Message::ToggleGpu => {
+                self.config.show_gpu = !self.config.show_gpu;
+                self.save_config();
+            }
+            Message::ToggleGpuTemp => {
+                self.config.show_gpu_temp = !self.config.show_gpu_temp;
                 self.save_config();
             }
             Message::ToggleDisk => {
@@ -573,7 +655,41 @@ impl cosmic::Application for SystemMonitorApplet {
             panel_row = panel_row.push(ram_block);
         }
 
-        // --- 3. DISK ---
+        // --- 3. GPU ---
+        if self.config.show_gpu {
+            if let Some(gpu) = self.gpu.get() {
+                let gpu_val_color = if gpu.usage_percent >= self.config.crit_percent {
+                    red_crit
+                } else if gpu.usage_percent >= self.config.warn_percent {
+                    peach_warn
+                } else {
+                    normal_val_color
+                };
+
+                let gpu_str = if self.config.show_gpu_temp && gpu.temperature_c > 0 {
+                    format!("{:.0}% {}°C", gpu.usage_percent, gpu.temperature_c)
+                } else {
+                    format!("{:.0}%", gpu.usage_percent)
+                };
+
+                let gpu_block = row![
+                    text("GPU")
+                        .size(13)
+                        .font(cosmic::font::bold())
+                        .class(cosmic::theme::Text::Color(label_color)),
+                    text(gpu_str)
+                        .size(13)
+                        .font(cosmic::font::bold())
+                        .class(cosmic::theme::Text::Color(gpu_val_color)),
+                ]
+                .spacing(4)
+                .align_y(Alignment::Center);
+
+                panel_row = panel_row.push(gpu_block);
+            }
+        }
+
+        // --- 4. DISK ---
         if self.config.show_disk {
             if let Some(d) = self.current_disk() {
                 let decimals = if self.config.show_decimals { 1 } else { 0 };
@@ -671,7 +787,7 @@ impl cosmic::Application for SystemMonitorApplet {
             }
         }
 
-        // --- 4. INTERNET / REDE (↓ 0.0M/s ↑ 0.0M/s) ---
+        // --- 5. INTERNET / REDE (↓ 0.0M/s ↑ 0.0M/s) ---
         if self.config.show_net {
             let rx_str = format_net_speed(self.net.rx_speed);
             let tx_str = format_net_speed(self.net.tx_speed);

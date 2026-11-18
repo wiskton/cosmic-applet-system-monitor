@@ -43,35 +43,30 @@ if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$HOME/.local/share/applications" || true
 fi
 
-# Adiciona automaticamente ao painel do COSMIC caso o arquivo exista e ainda não contenha o applet
+# Adiciona automaticamente à asa direita (alinhado à direita) do painel do COSMIC
 PANEL_CONFIG="$HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
 if [ -f "$PANEL_CONFIG" ]; then
-    if ! grep -q "com.wisk.cosmic-applet-disk-usage" "$PANEL_CONFIG"; then
-        echo "⚙️ Adicionando automaticamente o applet à barra do COSMIC..."
-        python3 - <<EOF
+    echo "⚙️ Configurando alinhamento à direita no painel do COSMIC..."
+    python3 - <<EOF
 import os
 
 path = os.path.expanduser("$PANEL_CONFIG")
 with open(path, "r") as f:
     content = f.read()
 
-# Posiciona logo após o minimon ou bitcoin
-applet_entry = '    "com.wisk.cosmic-applet-disk-usage",\n'
-target1 = '"com.wisk.cosmic-applet-bitcoin",'
-target2 = '"io.github.cosmic_utils.minimon-applet",'
+# Remove ocorrências antigas para evitar duplicidade
+lines = [l for l in content.splitlines() if '"com.wisk.cosmic-applet-disk-usage"' not in l]
+clean_content = "\n".join(lines)
 
-if target1 in content:
-    new_content = content.replace(target1, target1 + '\n' + applet_entry, 1)
-elif target2 in content:
-    new_content = content.replace(target2, target2 + '\n' + applet_entry, 1)
-else:
-    new_content = content.replace('Some(([', 'Some(([\n' + applet_entry, 1)
+# Insere na asa direita (segundo bloco do plugins_wings)
+target = '], ['
+applet_entry = '], [\n    "com.wisk.cosmic-applet-disk-usage",'
+new_content = clean_content.replace(target, applet_entry, 1)
 
 with open(path, "w") as f:
     f.write(new_content)
 EOF
-        echo "✅ Adicionado ao painel!"
-    fi
+    echo "✅ Alinhado à direita na barra!"
 fi
 
 # Recarrega o painel caso esteja em execução para refletir imediatamente

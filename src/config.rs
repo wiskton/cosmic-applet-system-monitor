@@ -33,6 +33,8 @@ impl Default for RamFormat {
 pub struct AppConfig {
     pub show_cpu: bool,
     pub show_ram: bool,
+    pub show_gpu: bool,
+    pub show_gpu_temp: bool,
     pub show_disk: bool,
     pub show_net: bool,
     pub disk_label: String,
@@ -49,6 +51,8 @@ impl Default for AppConfig {
         Self {
             show_cpu: true,
             show_ram: true,
+            show_gpu: true,
+            show_gpu_temp: false,
             show_disk: true,
             show_net: true,
             disk_label: "DISK".to_string(),

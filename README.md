@@ -1,92 +1,62 @@
-# 🖥️ COSMIC Applet - System & Disk Monitor (CPU, RAM, DISK, NET)
+# 🖥️ COSMIC Applet - System & Resource Monitor (CPU, RAM, GPU, DISK, NET)
 
-Applet nativo em **Rust** para a barra superior do **COSMIC Desktop** (Pop!_OS / Linux) que exibe em tempo real:
-- **CPU**: Porcentagem de uso (ex: `CPU 2%`)
-- **RAM**: Porcentagem ou capacidade ocupada (ex: `RAM 63%` ou `3.2G / 7.5G`)
+Applet nativo em **Rust** para a barra superior do **COSMIC Desktop** (Pop!_OS / Linux) alinhado à direita que exibe em tempo real:
+- **CPU**: Uso do processador (ex: `CPU 2%`)
+- **RAM**: Uso da memória (ex: `RAM 63%` ou `3.2G / 7.5G`)
+- **GPU**: Uso da placa de vídeo NVIDIA / Intel / AMD (ex: `GPU 45%` ou `GPU 45% 61°C`)
 - **DISCO**: Espaço ocupado e total do sistema (ex: `DISK 377G / 460G`)
 - **INTERNET / REDE**: Velocidade de download e upload em tempo real (ex: `↓ 0.0M/s ↑ 0.0M/s`)
 
-Combinando todos os recursos em um único applet rápido, unificado e de baixo consumo de recursos.
+Tudo em um único monitor compacto, elegante e alinhado à direita da barra do sistema.
 
 ![Ícone do Applet](resources/com.wisk.cosmic-applet-disk-usage.svg)
 
 ---
 
-## ✨ Funcionalidades
+## ✨ Recursos
 
-### 1. Barra Superior (Top Bar)
-- Visual idêntico ao padrão do COSMIC e do Pop!_OS:
-  ```
-  CPU 2%   RAM 63%   DISK 377G / 460G   ↓ 0.0M/s ↑ 0.0M/s
-  ```
-- **Cores inteligentes de alerta**:
-  - **Normal (< 75%)**: Tom branco/neutro limpo.
-  - **Alerta (≥ 75%)**: Tom pêssego/laranja (idêntico à referência de sistema).
+### 1. Barra Superior (Alinhada à Direita)
+```text
+CPU 2%   RAM 63%   GPU 45%   DISK 377G / 460G   ↓ 0.0M/s ↑ 0.0M/s
+```
+- **Alinhamento à Direita**: Posicionado na asa direita do painel do COSMIC (ao lado da bandeja e status do sistema).
+- **Cores dinâmicas**:
+  - **Normal (< 75%)**: Neutro / Branco limpo.
+  - **Alerta (≥ 75%)**: Pêssego / Laranja (aviso de carga moderada/alta).
   - **Crítico (≥ 90%)**: Vermelho vibrante.
-- **Toggles individuais**: Você pode ligar ou desligar qualquer métrica (CPU, RAM, Disco ou Internet) com um clique na janela popup!
-- **Formatos selecionáveis**:
-  - **Disco**: `377G / 460G`, `377G/460G`, `Livre: 60G` ou `86%`.
-  - **RAM**: `63%`, `3.2G / 7.5G` ou `3.2G / 7.5G (42%)`.
-  - **Rótulo do Disco**: `DISK`, `SSD`, `HD`, `💾` ou sem rótulo.
+- **Toggles individuais**: Ligue ou desligue qualquer indicador (`CPU`, `RAM`, `GPU`, `Disco` ou `Internet`) com 1 clique na janela do applet.
 
-### 2. Central Popup ao Clicar
-Ao clicar em qualquer parte do monitor na barra superior, abre-se uma central completa:
-- **CPU**: Gráfico de progresso com a porcentagem exata de processamento.
-- **RAM**: Detalhamento com memória usada, livre, total e porcentagem.
-- **Armazenamento / Discos**:
-  - Barra gráfica de ocupação da partição ativa (`/`).
-  - Botões para alternar entre outras partições montadas (`/boot/efi`, `/recovery`, discos externos/pendrives).
-- **Rede / Internet**:
-  - Velocidades atuais de Download (`↓`) e Upload (`↑`).
-  - Total de tráfego transferido na sessão (`↓ X GB | ↑ Y GB`).
-- **Atalhos Rápidos**:
-  - 📊 **Monitor do Sistema** (`gnome-system-monitor`)
-  - 📁 **Gerenciador de Arquivos** (`cosmic-files`)
-  - ⚙️ **Gerenciador de Discos** (`gnome-disks`)
-  - 📈 **Analisador de Uso de Disco** (`baobab`)
+### 2. Central Popup Detalhada
+Ao clicar no monitor na barra:
+- **Processador (CPU)**: Gráfico de progresso e porcentagem de uso.
+- **Memória RAM**: Quantidade usada, livre, total e porcentagem.
+- **Placa de Vídeo (GPU)**:
+  - Modelo detectado (ex: `NVIDIA GeForce RTX 3050`).
+  - Uso da GPU em tempo real.
+  - VRAM utilizada e total (`MiB / MiB`).
+  - Temperatura da GPU em `°C`.
+  - Opção para exibir a temperatura direto na barra (`GPU 45% 61°C`).
+- **Armazenamento (Disco)**:
+  - Capacidade e barra de progresso da partição raiz (`/`).
+  - Seletor rápido para monitorar outras partições (`/boot/efi`, `/recovery`, discos externos).
+- **Rede & Internet**:
+  - Download e upload atuais.
+  - Tráfego total transferido na sessão.
+- **Atalhos**: Monitor do Sistema (`gnome-system-monitor`), Arquivos (`cosmic-files`), Discos (`gnome-disks`) e Analisador (`baobab`).
 
 ---
 
-## 🚀 Como Instalar ou Atualizar
+## 🚀 Instalação e Atualização
 
-Dentro da pasta do projeto (`~/Documents/GitHub/cosmic-applet-disk-usage`):
+Na pasta `~/Documents/GitHub/cosmic-applet-disk-usage`:
 
 ```bash
 ./install.sh
 ```
 
-O script compila (se necessário), instala em `~/.local/bin/`, configura os ícones e o `.desktop`, registra na barra do painel COSMIC e recarrega instantaneamente.
-
----
-
-## ⚙️ Configuração
-
-As configurações ficam salvas em:
-`~/.config/cosmic-applet-disk-usage/config.json`
-
-```json
-{
-  "show_cpu": true,
-  "show_ram": true,
-  "show_disk": true,
-  "show_net": true,
-  "disk_label": "DISK",
-  "disk_mount_point": "/",
-  "disk_format": "UsedSlashTotal",
-  "ram_format": "Percent",
-  "show_decimals": false,
-  "warn_percent": 75.0,
-  "crit_percent": 90.0
-}
-```
-
-Você pode alterar tudo visualmente clicando no applet na barra do sistema.
-
 ---
 
 ## 🗑️ Desinstalação
-
-Caso queira remover do painel e do sistema:
 
 ```bash
 ./uninstall.sh

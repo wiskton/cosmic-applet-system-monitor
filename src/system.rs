@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::time::Instant;
+use std::process::Command;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Default)]
 pub struct CpuMonitor {
@@ -171,7 +173,6 @@ fn read_net_totals() -> (u64, u64) {
         for line in reader.lines().flatten() {
             if let Some((iface, data)) = line.split_once(':') {
                 let iface = iface.trim();
-                // Ignora interface de loopback
                 if iface == "lo" {
                     continue;
                 }
@@ -198,7 +199,106 @@ pub fn format_net_speed(bytes_per_sec: f64) -> String {
     if bytes_per_sec >= GB {
         format!("{:.1}G/s", bytes_per_sec / GB)
     } else {
-        // Exibe em MB/s como padrão (ex: 0.0M/s, 1.5M/s) idêntico à imagem de referência
         format!("{:.1}M/s", bytes_per_sec / MB)
     }
+}
+
+// =================== GPU MONITOR ===================
+
+#[derive(Debug, Clone, Default)]
+pub struct GpuInfo {
+    pub name: String,
+    pub usage_percent: f64,
+    pub vram_used_mb: u64,
+    pub vram_total_mb: u64,
+    pub temperature_c: u64,
+}
+
+#[derive(Clone)]
+pub struct GpuMonitor {
+    data: Arc<Mutex<Option<GpuInfo>>>,
+}
+
+impl Default for GpuMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GpuMonitor {
+    pub fn new() -> Self {
+        let initial = query_gpu_info();
+        let data = Arc::new(Mutex::new(initial));
+        let data_clone = Arc::clone(&data);
+
+        // Atualiza a GPU em background para nunca travar a UI da barra
+        std::thread::spawn(move || {
+            loop {
+                std::thread::sleep(Duration::from_millis(1500));
+                let info = query_gpu_info();
+                if let Ok(mut lock) = data_clone.lock() {
+                    *lock = info;
+                }
+            }
+        });
+
+        Self { data }
+    }
+
+    pub fn get(&self) -> Option<GpuInfo> {
+        self.data.lock().ok().and_then(|guard| guard.clone())
+    }
+}
+
+fn query_gpu_info() -> Option<GpuInfo> {
+    // 1. Tenta consulta direta via nvidia-smi
+    if let Ok(output) = Command::new("nvidia-smi")
+        .args([
+            "--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu,name",
+            "--format=csv,noheader,nounits",
+        ])
+        .output()
+    {
+        if output.status.success() {
+            let text = String::from_utf8_lossy(&output.stdout);
+            let parts: Vec<&str> = text.trim().split(',').map(|s| s.trim()).collect();
+            if parts.len() >= 5 {
+                let usage = parts[0].parse::<f64>().unwrap_or(0.0);
+                let vram_used = parts[1].parse::<u64>().unwrap_or(0);
+                let vram_total = parts[2].parse::<u64>().unwrap_or(0);
+                let temp = parts[3].parse::<u64>().unwrap_or(0);
+                let name = parts[4].to_string();
+
+                return Some(GpuInfo {
+                    name,
+                    usage_percent: usage,
+                    vram_used_mb: vram_used,
+                    vram_total_mb: vram_total,
+                    temperature_c: temp,
+                });
+            }
+        }
+    }
+
+    // 2. Fallback para sysfs (AMD ou Intel DRM)
+    if let Ok(entries) = std::fs::read_dir("/sys/class/drm") {
+        for entry in entries.flatten() {
+            let path = entry.path().join("device/gpu_busy_percent");
+            if path.exists() {
+                if let Ok(content) = std::fs::read_to_string(&path) {
+                    if let Ok(pct) = content.trim().parse::<f64>() {
+                        return Some(GpuInfo {
+                            name: "GPU Integrada".to_string(),
+                            usage_percent: pct,
+                            vram_used_mb: 0,
+                            vram_total_mb: 0,
+                            temperature_c: 0,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    None
 }
