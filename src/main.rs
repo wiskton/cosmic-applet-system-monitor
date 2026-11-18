@@ -1,12 +1,13 @@
 mod app;
 mod config;
 mod disk;
+mod system;
 
-use app::DiskApplet;
+use app::SystemMonitorApplet;
 
 fn main() -> cosmic::iced::Result {
     tracing_subscriber::fmt::init();
-    tracing::info!("Iniciando Disk Usage Applet para COSMIC Desktop");
+    tracing::info!("Iniciando System Monitor Applet para COSMIC Desktop");
 
-    cosmic::applet::run::<DiskApplet>(())
+    cosmic::applet::run::<SystemMonitorApplet>(())
 }

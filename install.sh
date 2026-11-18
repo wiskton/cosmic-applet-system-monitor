@@ -21,7 +21,10 @@ mkdir -p "$HOME/.local/bin"
 mkdir -p "$HOME/.local/share/applications"
 mkdir -p "$HOME/.local/share/icons/hicolor/scalable/apps"
 
-cp target/release/cosmic-applet-disk-usage "$HOME/.local/bin/"
+# Para processo anterior se estiver rodando para permitir a substituição do binário
+killall cosmic-applet-disk-usage 2>/dev/null || true
+
+cp --remove-destination target/release/cosmic-applet-disk-usage "$HOME/.local/bin/"
 chmod +x "$HOME/.local/bin/cosmic-applet-disk-usage"
 
 # Reduz o tamanho do binário se strip estiver disponível

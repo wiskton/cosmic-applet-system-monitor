@@ -16,36 +16,30 @@ impl Default for DisplayFormat {
     }
 }
 
-#[allow(dead_code)]
-impl DisplayFormat {
-    pub fn label(&self) -> &'static str {
-        match self {
-            DisplayFormat::UsedSlashTotal => "377G / 460G",
-            DisplayFormat::UsedSlashTotalPercent => "377G / 460G (86%)",
-            DisplayFormat::Compact => "377G/460G",
-            DisplayFormat::FreeSlashTotal => "Livre: 60G / 460G",
-            DisplayFormat::PercentOnly => "86%",
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RamFormat {
+    Percent,               // Ex: 63%
+    UsedSlashTotal,        // Ex: 3.2G / 7.5G
+    UsedSlashTotalPercent, // Ex: 3.2G / 7.5G (42%)
+}
 
-    pub fn next(&self) -> Self {
-        match self {
-            DisplayFormat::UsedSlashTotal => DisplayFormat::UsedSlashTotalPercent,
-            DisplayFormat::UsedSlashTotalPercent => DisplayFormat::Compact,
-            DisplayFormat::Compact => DisplayFormat::FreeSlashTotal,
-            DisplayFormat::FreeSlashTotal => DisplayFormat::PercentOnly,
-            DisplayFormat::PercentOnly => DisplayFormat::UsedSlashTotal,
-        }
+impl Default for RamFormat {
+    fn default() -> Self {
+        RamFormat::Percent
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
-    pub label: String,
-    pub mount_point: String,
-    pub display_format: DisplayFormat,
+    pub show_cpu: bool,
+    pub show_ram: bool,
+    pub show_disk: bool,
+    pub show_net: bool,
+    pub disk_label: String,
+    pub disk_mount_point: String,
+    pub disk_format: DisplayFormat,
+    pub ram_format: RamFormat,
     pub show_decimals: bool,
-    pub refresh_interval_secs: u64,
     pub warn_percent: f64,
     pub crit_percent: f64,
 }
@@ -53,11 +47,15 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            label: "DISK".to_string(),
-            mount_point: "/".to_string(),
-            display_format: DisplayFormat::UsedSlashTotal,
+            show_cpu: true,
+            show_ram: true,
+            show_disk: true,
+            show_net: true,
+            disk_label: "DISK".to_string(),
+            disk_mount_point: "/".to_string(),
+            disk_format: DisplayFormat::UsedSlashTotal,
+            ram_format: RamFormat::Percent,
             show_decimals: false,
-            refresh_interval_secs: 3,
             warn_percent: 75.0,
             crit_percent: 90.0,
         }

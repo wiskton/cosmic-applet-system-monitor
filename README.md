@@ -1,100 +1,93 @@
-# 💽 COSMIC Applet - Disk Usage Monitor
+# 🖥️ COSMIC Applet - System & Disk Monitor (CPU, RAM, DISK, NET)
 
-Applet nativo em **Rust** para a barra superior do **COSMIC Desktop** (Pop!_OS / Linux) que exibe o espaço em disco ocupado e o total em tempo real, combinando perfeitamente com os monitores de CPU e RAM (`minimon` / `sysinfo`).
+Applet nativo em **Rust** para a barra superior do **COSMIC Desktop** (Pop!_OS / Linux) que exibe em tempo real:
+- **CPU**: Porcentagem de uso (ex: `CPU 2%`)
+- **RAM**: Porcentagem ou capacidade ocupada (ex: `RAM 63%` ou `3.2G / 7.5G`)
+- **DISCO**: Espaço ocupado e total do sistema (ex: `DISK 377G / 460G`)
+- **INTERNET / REDE**: Velocidade de download e upload em tempo real (ex: `↓ 0.0M/s ↑ 0.0M/s`)
 
-![Exemplo na barra](resources/com.wisk.cosmic-applet-disk-usage.svg)
+Combinando todos os recursos em um único applet rápido, unificado e de baixo consumo de recursos.
+
+![Ícone do Applet](resources/com.wisk.cosmic-applet-disk-usage.svg)
 
 ---
 
 ## ✨ Funcionalidades
 
-- **Exibição na Barra Superior**:
-  - Mostra o espaço ocupado e o total do disco (ex: `DISK 377G / 460G`).
-  - **Cores dinâmicas**:
-    - **Normal (< 75%)**: Neutro / Branco limpo.
-    - **Alerta (≥ 75%)**: Tom pêssego/laranja (idêntico ao alerta de RAM na imagem de referência).
-    - **Crítico (≥ 90%)**: Vermelho vibrante.
-  - Vários formatos selecionáveis com 1 clique:
-    - `377G / 460G` (Padrão)
-    - `377G / 460G (86%)`
-    - `377G/460G` (Compacto)
-    - `Livre: 60G`
-    - `86%`
-  - Rótulos customizáveis: `DISK`, `SSD`, `HD`, `💾` ou oculto.
-  - Opção de alternar entre números inteiros (`377G`) e decimais (`376.5G`).
+### 1. Barra Superior (Top Bar)
+- Visual idêntico ao padrão do COSMIC e do Pop!_OS:
+  ```
+  CPU 2%   RAM 63%   DISK 377G / 460G   ↓ 0.0M/s ↑ 0.0M/s
+  ```
+- **Cores inteligentes de alerta**:
+  - **Normal (< 75%)**: Tom branco/neutro limpo.
+  - **Alerta (≥ 75%)**: Tom pêssego/laranja (idêntico à referência de sistema).
+  - **Crítico (≥ 90%)**: Vermelho vibrante.
+- **Toggles individuais**: Você pode ligar ou desligar qualquer métrica (CPU, RAM, Disco ou Internet) com um clique na janela popup!
+- **Formatos selecionáveis**:
+  - **Disco**: `377G / 460G`, `377G/460G`, `Livre: 60G` ou `86%`.
+  - **RAM**: `63%`, `3.2G / 7.5G` ou `3.2G / 7.5G (42%)`.
+  - **Rótulo do Disco**: `DISK`, `SSD`, `HD`, `💾` ou sem rótulo.
 
-- **Popup Interativo ao Clicar**:
-  - Barra de progresso visual do uso do disco principal (`/`).
-  - Lista de todas as partições e mídias montadas (`/boot/efi`, `/recovery`, pendrives, discos externos).
-  - Botão para trocar qual partição exibir na barra com 1 clique.
-  - **Atalhos rápidos do sistema**:
-    - 📁 Abrir no Gerenciador de Arquivos (`cosmic-files`).
-    - 📊 Abrir Analisador de Uso de Disco (`baobab`).
-    - ⚙️ Abrir Gerenciador de Discos (`gnome-disks`).
-  - Botão de atualização imediata e atualização automática contínua a cada 3s.
-
-- **Leve e Eficiente**:
-  - Desenvolvido em Rust puro com `libcosmic` e chamadas diretas de sistema `statvfs`.
-  - Zero uso perceptível de CPU (0.0%).
+### 2. Central Popup ao Clicar
+Ao clicar em qualquer parte do monitor na barra superior, abre-se uma central completa:
+- **CPU**: Gráfico de progresso com a porcentagem exata de processamento.
+- **RAM**: Detalhamento com memória usada, livre, total e porcentagem.
+- **Armazenamento / Discos**:
+  - Barra gráfica de ocupação da partição ativa (`/`).
+  - Botões para alternar entre outras partições montadas (`/boot/efi`, `/recovery`, discos externos/pendrives).
+- **Rede / Internet**:
+  - Velocidades atuais de Download (`↓`) e Upload (`↑`).
+  - Total de tráfego transferido na sessão (`↓ X GB | ↑ Y GB`).
+- **Atalhos Rápidos**:
+  - 📊 **Monitor do Sistema** (`gnome-system-monitor`)
+  - 📁 **Gerenciador de Arquivos** (`cosmic-files`)
+  - ⚙️ **Gerenciador de Discos** (`gnome-disks`)
+  - 📈 **Analisador de Uso de Disco** (`baobab`)
 
 ---
 
-## 🚀 Instalação Rápida
+## 🚀 Como Instalar ou Atualizar
 
-Dentro da pasta do projeto, execute:
+Dentro da pasta do projeto (`~/Documents/GitHub/cosmic-applet-disk-usage`):
 
 ```bash
 ./install.sh
 ```
 
-O script irá:
-1. Compilar o binário em modo release otimizado.
-2. Instalar o executável em `~/.local/bin/cosmic-applet-disk-usage`.
-3. Instalar o arquivo `.desktop` e o ícone SVG no sistema.
-4. Adicionar automaticamente o applet na barra superior do COSMIC (ao lado dos monitores de CPU/RAM).
-5. Recarregar o painel para que o applet apareça imediatamente.
+O script compila (se necessário), instala em `~/.local/bin/`, configura os ícones e o `.desktop`, registra na barra do painel COSMIC e recarrega instantaneamente.
 
 ---
 
-## ⚙️ Configuração Manual / Personalização
+## ⚙️ Configuração
 
-As preferências são salvas automaticamente em:
+As configurações ficam salvas em:
 `~/.config/cosmic-applet-disk-usage/config.json`
-
-Você pode alterar os formatos, rótulos e partições diretamente na janela do applet ao clicar nele na barra, ou editar o arquivo JSON:
 
 ```json
 {
-  "label": "DISK",
-  "mount_point": "/",
-  "display_format": "UsedSlashTotal",
+  "show_cpu": true,
+  "show_ram": true,
+  "show_disk": true,
+  "show_net": true,
+  "disk_label": "DISK",
+  "disk_mount_point": "/",
+  "disk_format": "UsedSlashTotal",
+  "ram_format": "Percent",
   "show_decimals": false,
-  "refresh_interval_secs": 3,
   "warn_percent": 75.0,
   "crit_percent": 90.0
 }
 ```
 
-Para mover ou reposicionar o applet na barra:
-1. Abra **Configurações do Sistema -> Área de Trabalho -> Painel**.
-2. Clique em **Configurar Applets** e arraste o **Disk Usage Applet** para a posição desejada.
+Você pode alterar tudo visualmente clicando no applet na barra do sistema.
 
 ---
 
 ## 🗑️ Desinstalação
 
-Se desejar remover o applet da barra e do sistema:
+Caso queira remover do painel e do sistema:
 
 ```bash
 ./uninstall.sh
 ```
-
----
-
-## 📂 Estrutura do Código
-
-- `src/main.rs`: Ponto de entrada do applet COSMIC.
-- `src/app.rs`: Interface gráfica (barra superior, estilo de texto/cores e janela popup).
-- `src/disk.rs`: Leitura dos discos via `/proc/mounts` e medição via `libc::statvfs`.
-- `src/config.rs`: Gerenciamento e persistência das configurações.
-- `resources/`: Arquivo de integração `.desktop` e ícone SVG vetorial.
