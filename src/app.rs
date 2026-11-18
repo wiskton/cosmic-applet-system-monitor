@@ -399,9 +399,9 @@ impl SystemMonitorApplet {
             divider::horizontal::default(),
             cpu_section,
             divider::horizontal::default(),
-            ram_section,
-            divider::horizontal::default(),
             gpu_section,
+            divider::horizontal::default(),
+            ram_section,
             divider::horizontal::default(),
             disk_section,
             divider::horizontal::default(),
@@ -587,7 +587,41 @@ impl cosmic::Application for SystemMonitorApplet {
             panel_row = panel_row.push(cpu_block);
         }
 
-        // --- 2. RAM ---
+        // --- 2. GPU ---
+        if self.config.show_gpu {
+            if let Some(gpu) = self.gpu.get() {
+                let gpu_val_color = if gpu.usage_percent >= self.config.crit_percent {
+                    red_crit
+                } else if gpu.usage_percent >= self.config.warn_percent {
+                    peach_warn
+                } else {
+                    normal_val_color
+                };
+
+                let gpu_str = if self.config.show_gpu_temp && gpu.temperature_c > 0 {
+                    format!("{:.0}% {}°C", gpu.usage_percent, gpu.temperature_c)
+                } else {
+                    format!("{:.0}%", gpu.usage_percent)
+                };
+
+                let gpu_block = row![
+                    text("GPU")
+                        .size(13)
+                        .font(cosmic::font::bold())
+                        .class(cosmic::theme::Text::Color(label_color)),
+                    text(gpu_str)
+                        .size(13)
+                        .font(cosmic::font::bold())
+                        .class(cosmic::theme::Text::Color(gpu_val_color)),
+                ]
+                .spacing(4)
+                .align_y(Alignment::Center);
+
+                panel_row = panel_row.push(gpu_block);
+            }
+        }
+
+        // --- 3. RAM (Memória) ---
         if self.config.show_ram {
             let ram_val_color = if self.mem.usage_percent >= self.config.crit_percent {
                 red_crit
@@ -653,40 +687,6 @@ impl cosmic::Application for SystemMonitorApplet {
             }
 
             panel_row = panel_row.push(ram_block);
-        }
-
-        // --- 3. GPU ---
-        if self.config.show_gpu {
-            if let Some(gpu) = self.gpu.get() {
-                let gpu_val_color = if gpu.usage_percent >= self.config.crit_percent {
-                    red_crit
-                } else if gpu.usage_percent >= self.config.warn_percent {
-                    peach_warn
-                } else {
-                    normal_val_color
-                };
-
-                let gpu_str = if self.config.show_gpu_temp && gpu.temperature_c > 0 {
-                    format!("{:.0}% {}°C", gpu.usage_percent, gpu.temperature_c)
-                } else {
-                    format!("{:.0}%", gpu.usage_percent)
-                };
-
-                let gpu_block = row![
-                    text("GPU")
-                        .size(13)
-                        .font(cosmic::font::bold())
-                        .class(cosmic::theme::Text::Color(label_color)),
-                    text(gpu_str)
-                        .size(13)
-                        .font(cosmic::font::bold())
-                        .class(cosmic::theme::Text::Color(gpu_val_color)),
-                ]
-                .spacing(4)
-                .align_y(Alignment::Center);
-
-                panel_row = panel_row.push(gpu_block);
-            }
         }
 
         // --- 4. DISK ---
