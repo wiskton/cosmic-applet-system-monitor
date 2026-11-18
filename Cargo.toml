@@ -1,0 +1,28 @@
+[package]
+name = "cosmic-applet-disk-usage"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "Disk usage monitor applet for the COSMIC Desktop"
+
+[dependencies]
+libc = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+iced_winit = { git = "https://github.com/pop-os/libcosmic.git" }
+
+[dependencies.libcosmic]
+git = "https://github.com/pop-os/libcosmic.git"
+features = [
+    "applet",
+    "applet-token",
+    "dbus-config",
+    "multi-window",
+    "tokio",
+    "wayland",
+    "winit",
+]
