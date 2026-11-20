@@ -165,15 +165,19 @@ impl SystemMonitorApplet {
                     .wrapping(Wrapping::Word),
             ]
             .spacing(1)
-            .width(Length::Fill);
+            // Impede que nomes longos aumentem a largura do popup. O texto
+            // continua responsivo dentro deste bloco e quebra entre palavras.
+            .width(Length::Fixed(220.0));
 
             let gpu_row = row![
                 gpu_title,
+                horizontal_space(),
                 text(format!("{:.1}%", gpu.usage_percent))
                     .size(14)
                     .font(cosmic::font::bold())
                     .class(cosmic::theme::Text::Color(gpu_color)),
             ]
+            .width(Length::Fill)
             .align_y(Alignment::Center);
 
             let gpu_details = text(format!("{}{}", vram_text, temp_text))
