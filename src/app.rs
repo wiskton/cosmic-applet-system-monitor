@@ -428,7 +428,7 @@ impl cosmic::Application for SystemMonitorApplet {
     type Executor = cosmic::SingleThreadExecutor;
     type Flags = ();
     type Message = Message;
-    const APP_ID: &'static str = "com.wisk.cosmic-applet-disk-usage";
+    const APP_ID: &'static str = "com.wisk.cosmic-applet-system-monitor";
 
     fn core(&self) -> &Core {
         &self.core

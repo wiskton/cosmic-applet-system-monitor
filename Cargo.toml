@@ -1,9 +1,9 @@
 [package]
-name = "cosmic-applet-disk-usage"
+name = "cosmic-applet-system-monitor"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
-description = "Disk usage monitor applet for the COSMIC Desktop"
+description = "System resource monitor applet for the COSMIC Desktop"
 
 [dependencies]
 libc = "0.2"

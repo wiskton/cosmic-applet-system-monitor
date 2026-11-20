@@ -1,4 +1,4 @@
-# 🖥️ COSMIC Applet - System & Resource Monitor (CPU, RAM, GPU, DISK, NET)
+# 🖥️ COSMIC System Monitor Applet
 
 Applet nativo em **Rust** para a barra superior do **COSMIC Desktop** (Pop!_OS / Linux) alinhado à direita que exibe em tempo real:
 - **CPU**: Uso do processador (ex: `CPU 2%`)
@@ -9,7 +9,7 @@ Applet nativo em **Rust** para a barra superior do **COSMIC Desktop** (Pop!_OS /
 
 Tudo em um único monitor compacto, elegante e alinhado à direita da barra do sistema.
 
-![Ícone do Applet](resources/com.wisk.cosmic-applet-disk-usage.svg)
+![Ícone do Applet](resources/com.wisk.cosmic-applet-system-monitor.svg)
 
 ---
 
@@ -48,7 +48,7 @@ Ao clicar no monitor na barra:
 
 ## 🚀 Instalação e Atualização
 
-Na pasta `~/Documents/GitHub/cosmic-applet-disk-usage`:
+Na pasta `~/Documents/GitHub/cosmic-applet-system-monitor`:
 
 ```bash
 ./install.sh
