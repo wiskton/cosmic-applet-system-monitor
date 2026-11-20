@@ -1,10 +1,11 @@
 use std::time::Duration;
 use cosmic::app::{Core, Task};
+use cosmic::iced::core::text::Wrapping;
 use cosmic::iced::core::window;
 use cosmic::iced::window::Id;
 use cosmic::iced::{time, Alignment, Length, Rectangle, Subscription};
 use cosmic::surface::action::{app_popup, destroy_popup};
-use cosmic::widget::{button, column, divider, progress_bar, row, text};
+use cosmic::widget::{button, column, divider, progress_bar, row, scrollable, text};
 use cosmic::Element;
 
 use crate::config::{AppConfig, DisplayFormat, RamFormat};
@@ -63,10 +64,12 @@ impl SystemMonitorApplet {
         let header = row![
             text("💻 Monitor do Sistema & Recursos")
                 .size(17)
-                .font(cosmic::font::bold()),
+                .font(cosmic::font::bold())
+                .width(Length::Fill)
+                .wrapping(Wrapping::Word),
             horizontal_space(),
-            button::standard("↻ Atualizar")
-                .padding([3, 10])
+            button::standard("↻")
+                .padding([3, 8])
                 .on_press(Message::Refresh),
         ]
         .spacing(8)
@@ -109,9 +112,6 @@ impl SystemMonitorApplet {
 
         let ram_row = row![
             text("Memória RAM").size(13).font(cosmic::font::bold()),
-            text(format!("({} usado / {} total, {} livre)", ram_used, ram_total, ram_avail))
-                .size(11)
-                .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6))),
             horizontal_space(),
             text(format!("{:.1}%", self.mem.usage_percent))
                 .size(14)
@@ -119,8 +119,16 @@ impl SystemMonitorApplet {
                 .class(cosmic::theme::Text::Color(ram_color)),
         ]
         .align_y(Alignment::Center);
+        let ram_details = text(format!(
+            "{} usado / {} total · {} livre",
+            ram_used, ram_total, ram_avail
+        ))
+        .size(11)
+        .width(Length::Fill)
+        .wrapping(Wrapping::Word)
+        .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6)));
         let ram_bar = progress_bar::determinate_linear(ram_pct_val);
-        let ram_section = column![ram_row, ram_bar].spacing(4);
+        let ram_section = column![ram_row, ram_details, ram_bar].spacing(3);
 
         // --- 3. GPU Card ---
         let gpu_info = self.gpu.get();
@@ -147,14 +155,20 @@ impl SystemMonitorApplet {
                 String::new()
             };
 
-            let gpu_row = row![
-                text(format!("Placa de Vídeo ({})", gpu.name))
+            let gpu_title = column![
+                text("Placa de Vídeo")
                     .size(13)
                     .font(cosmic::font::bold()),
-                text(format!("{}{}", vram_text, temp_text))
-                    .size(11)
-                    .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6))),
-                horizontal_space(),
+                text(gpu.name.clone())
+                    .size(12)
+                    .width(Length::Fill)
+                    .wrapping(Wrapping::Word),
+            ]
+            .spacing(1)
+            .width(Length::Fill);
+
+            let gpu_row = row![
+                gpu_title,
                 text(format!("{:.1}%", gpu.usage_percent))
                     .size(14)
                     .font(cosmic::font::bold())
@@ -162,8 +176,14 @@ impl SystemMonitorApplet {
             ]
             .align_y(Alignment::Center);
 
+            let gpu_details = text(format!("{}{}", vram_text, temp_text))
+                .size(11)
+                .width(Length::Fill)
+                .wrapping(Wrapping::Word)
+                .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6)));
+
             let gpu_bar = progress_bar::determinate_linear(gpu_pct_val);
-            column![gpu_row, gpu_bar].spacing(4)
+            column![gpu_row, gpu_details, gpu_bar].spacing(3)
         } else {
             column![
                 text("GPU").size(13).font(cosmic::font::bold()),
@@ -192,9 +212,6 @@ impl SystemMonitorApplet {
                 text(format!("Disco ({})", d.mount_point))
                     .size(13)
                     .font(cosmic::font::bold()),
-                text(format!("{} / {} (livre: {})", used_str, total_str, free_str))
-                    .size(11)
-                    .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6))),
                 horizontal_space(),
                 text(format!("{:.1}%", d.usage_percent))
                     .size(14)
@@ -203,8 +220,17 @@ impl SystemMonitorApplet {
             ]
             .align_y(Alignment::Center);
 
+            let disk_details = text(format!(
+                "{} usado / {} total · {} livre",
+                used_str, total_str, free_str
+            ))
+            .size(11)
+            .width(Length::Fill)
+            .wrapping(Wrapping::Word)
+            .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.6, 0.6, 0.6)));
+
             let d_bar = progress_bar::determinate_linear(pct_val);
-            let mut col = column![disk_header, d_bar].spacing(4);
+            let mut col = column![disk_header, disk_details, d_bar].spacing(3);
 
             if self.disks.len() > 1 {
                 let mut part_buttons = row![
@@ -264,65 +290,77 @@ impl SystemMonitorApplet {
         let net_section = column![net_row, net_totals].spacing(4);
 
         // --- 6. Configuração dos Itens na Barra ---
-        let toggles_row = row![
+        let toggles_buttons = row![
+            button::standard(if self.config.show_cpu { "✓ CPU" } else { "CPU" })
+                .padding([2, 6])
+                .on_press(Message::ToggleCpu),
+            button::standard(if self.config.show_ram { "✓ RAM" } else { "RAM" })
+                .padding([2, 6])
+                .on_press(Message::ToggleRam),
+            button::standard(if self.config.show_gpu { "✓ GPU" } else { "GPU" })
+                .padding([2, 6])
+                .on_press(Message::ToggleGpu),
+            button::standard(if self.config.show_disk { "✓ Disco" } else { "Disco" })
+                .padding([2, 6])
+                .on_press(Message::ToggleDisk),
+            button::standard(if self.config.show_net { "✓ Rede" } else { "Rede" })
+                .padding([2, 6])
+                .on_press(Message::ToggleNet),
+        ]
+        .spacing(4)
+        .align_y(Alignment::Center);
+
+        let toggles_row = column![
             text("Mostrar na barra:")
                 .size(12)
                 .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.65, 0.65, 0.65))),
-            button::standard(if self.config.show_cpu { "✓ CPU" } else { "CPU" })
-                .padding([2, 8])
-                .on_press(Message::ToggleCpu),
-            button::standard(if self.config.show_ram { "✓ RAM" } else { "RAM" })
-                .padding([2, 8])
-                .on_press(Message::ToggleRam),
-            button::standard(if self.config.show_gpu { "✓ GPU" } else { "GPU" })
-                .padding([2, 8])
-                .on_press(Message::ToggleGpu),
-            button::standard(if self.config.show_disk { "✓ Disco" } else { "Disco" })
-                .padding([2, 8])
-                .on_press(Message::ToggleDisk),
-            button::standard(if self.config.show_net { "✓ Internet" } else { "Internet" })
-                .padding([2, 8])
-                .on_press(Message::ToggleNet),
+            toggles_buttons,
         ]
-        .spacing(6)
-        .align_y(Alignment::Center);
+        .spacing(3);
 
         // Opções da GPU
         let gpu_options_row = row![
             text("Opções GPU:")
                 .size(12)
                 .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.65, 0.65, 0.65))),
-            button::standard(if self.config.show_gpu_temp { "Exibir Temp: Ligado (ex: 55% 61°C)" } else { "Exibir Temp: Desligado (ex: 55%)" })
-                .padding([2, 8])
+            button::standard(if self.config.show_gpu_temp { "Temperatura: Ligada" } else { "Temperatura: Desligada" })
+                .padding([2, 6])
                 .on_press(Message::ToggleGpuTemp),
         ]
         .spacing(6)
         .align_y(Alignment::Center);
 
         // Seletor de Formato de Disco
-        let disk_format_row = row![
-            text("Formato Disco:")
+        let disk_format_buttons = row![
+            button::standard("Usado / total")
+                .padding([2, 5])
+                .on_press(Message::SetDisplayFormat(DisplayFormat::UsedSlashTotal)),
+            button::standard("Compacto")
+                .padding([2, 5])
+                .on_press(Message::SetDisplayFormat(DisplayFormat::Compact)),
+            button::standard("Livre")
+                .padding([2, 5])
+                .on_press(Message::SetDisplayFormat(DisplayFormat::FreeSlashTotal)),
+            button::standard("%")
+                .padding([2, 5])
+                .on_press(Message::SetDisplayFormat(DisplayFormat::PercentOnly)),
+        ]
+        .spacing(4)
+        .align_y(Alignment::Center);
+
+        let disk_format_row = column![
+            row![
+                text("Formato Disco:")
                 .size(12)
                 .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.65, 0.65, 0.65))),
-            button::standard("377G / 460G")
-                .padding([2, 6])
-                .on_press(Message::SetDisplayFormat(DisplayFormat::UsedSlashTotal)),
-            button::standard("377G/460G")
-                .padding([2, 6])
-                .on_press(Message::SetDisplayFormat(DisplayFormat::Compact)),
-            button::standard("Livre: 60G")
-                .padding([2, 6])
-                .on_press(Message::SetDisplayFormat(DisplayFormat::FreeSlashTotal)),
-            button::standard("86%")
-                .padding([2, 6])
-                .on_press(Message::SetDisplayFormat(DisplayFormat::PercentOnly)),
-            horizontal_space(),
-            button::standard(if self.config.show_decimals { "Decimais: 1" } else { "Decimais: 0" })
-                .padding([2, 6])
-                .on_press(Message::ToggleDecimals),
+                horizontal_space(),
+                button::standard(if self.config.show_decimals { "1 decimal" } else { "Sem decimais" })
+                    .padding([2, 5])
+                    .on_press(Message::ToggleDecimals),
+            ].align_y(Alignment::Center),
+            disk_format_buttons,
         ]
-        .spacing(6)
-        .align_y(Alignment::Center);
+        .spacing(3);
 
         // Seletor de Rótulo do Disco
         let label_row = row![
@@ -353,14 +391,14 @@ impl SystemMonitorApplet {
             text("Formato RAM:")
                 .size(12)
                 .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.65, 0.65, 0.65))),
-            button::standard("63%")
-                .padding([2, 6])
+            button::standard("%")
+                .padding([2, 5])
                 .on_press(Message::SetRamFormat(RamFormat::Percent)),
-            button::standard("3.2G / 7.5G")
-                .padding([2, 6])
+            button::standard("Usado / total")
+                .padding([2, 5])
                 .on_press(Message::SetRamFormat(RamFormat::UsedSlashTotal)),
-            button::standard("3.2G / 7.5G (42%)")
-                .padding([2, 6])
+            button::standard("Usado / total (%)")
+                .padding([2, 5])
                 .on_press(Message::SetRamFormat(RamFormat::UsedSlashTotalPercent)),
         ]
         .spacing(6)
@@ -368,25 +406,30 @@ impl SystemMonitorApplet {
 
         // Atalhos de Ferramentas do Sistema
         let mount_target = current.map(|d| d.mount_point.clone()).unwrap_or_else(|| "/".to_string());
-        let tools_row = row![
+        let tools_buttons = row![
+            button::standard("📊 Sistema")
+                .padding([3, 6])
+                .on_press(Message::LaunchTool("gnome-system-monitor", String::new())),
+            button::standard("📁 Arquivos")
+                .padding([3, 6])
+                .on_press(Message::LaunchTool("cosmic-files", mount_target.clone())),
+            button::standard("⚙️ Discos")
+                .padding([3, 6])
+                .on_press(Message::LaunchTool("gnome-disks", String::new())),
+            button::standard("📈 Espaço")
+                .padding([3, 6])
+                .on_press(Message::LaunchTool("baobab", mount_target)),
+        ]
+        .spacing(4)
+        .align_y(Alignment::Center);
+
+        let tools_row = column![
             text("Atalhos:")
                 .size(12)
                 .class(cosmic::theme::Text::Color(cosmic::iced::Color::from_rgb(0.65, 0.65, 0.65))),
-            button::standard("📊 Monitor do Sistema")
-                .padding([3, 10])
-                .on_press(Message::LaunchTool("gnome-system-monitor", String::new())),
-            button::standard("📁 Arquivos")
-                .padding([3, 10])
-                .on_press(Message::LaunchTool("cosmic-files", mount_target.clone())),
-            button::standard("⚙️ Discos")
-                .padding([3, 10])
-                .on_press(Message::LaunchTool("gnome-disks", String::new())),
-            button::standard("📈 Analisador")
-                .padding([3, 10])
-                .on_press(Message::LaunchTool("baobab", mount_target)),
+            tools_buttons,
         ]
-        .spacing(6)
-        .align_y(Alignment::Center);
+        .spacing(3);
 
         let footer = row![
             text("Atualização automática em tempo real (1s)")
@@ -417,10 +460,12 @@ impl SystemMonitorApplet {
             divider::horizontal::default(),
             footer,
         ]
-        .spacing(10)
-        .padding(16);
+        .spacing(8)
+        .padding(12);
 
-        Element::from(self.core.applet.popup_container(content))
+        let scrollable_content = scrollable(content).height(Length::Fixed(680.0));
+
+        Element::from(self.core.applet.popup_container(scrollable_content))
     }
 }
 

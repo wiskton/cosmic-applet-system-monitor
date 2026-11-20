@@ -10,11 +10,7 @@ if [ -d "$DIR/.local-deps/usr/lib/x86_64-linux-gnu/pkgconfig" ]; then
 fi
 
 echo "🔨 Compilando o cosmic-applet-system-monitor em modo release..."
-if [ ! -f "target/release/cosmic-applet-system-monitor" ]; then
-    cargo build --release
-else
-    echo "⚡ Binário já compilado encontrado em target/release/cosmic-applet-system-monitor"
-fi
+cargo build --release
 
 echo "📦 Instalando binário e arquivos de integração do COSMIC..."
 mkdir -p "$HOME/.local/bin"
